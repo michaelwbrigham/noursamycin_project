@@ -1,9 +1,4 @@
-from math import sqrt
-from sklearn import decomposition
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 from Bio.Seq import Seq
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -13,8 +8,10 @@ import os
 import tempfile
 import subprocess
 
+# check all records have an amino acid sequence and protein name, drop any that don't print them out
 
-def check_aaseq_nan(df, i_name, i_seq):
+
+def check_aaseq_name_nan(df, i_name, i_seq):
     if df[i_seq].isnull().values.any():
         dropped_protein_name = df[i_name][df[i_seq].isnull()]
         dropped_index = df[df[i_seq].isnull()].index
@@ -25,6 +22,9 @@ def check_aaseq_nan(df, i_name, i_seq):
     df = df[df[i_seq].notna()]
 
     return df
+
+# write a fasta file containing amino acid seq and id consisting of protein name,
+# substrate type and amino acid substrate
 
 
 def write_fasta_from_df(df, path, file_name, i_seq, i_name, i_cat, i_aa):
@@ -38,14 +38,18 @@ def write_fasta_from_df(df, path, file_name, i_seq, i_name, i_cat, i_aa):
 
     SeqIO.write(hyd_records, path+"/"+file_name, "fasta")
 
+# create a MUSCLE alignment using fasta file and write it
+
 
 def create_muscle_aligment_bashcmd(path, i_file_name):
     file_path = path+"/"+i_file_name
     cmd = MuscleCommandline(input=file_path, out=file_path.replace('.faa', '_musclealign.faa'))
     subprocess.run(str(cmd).split(), stdout=subprocess.DEVNULL)
 
+# function that carries out record check, fasta file creation and muscle alignment sequentially
 
-def aaseq_df_to_align_onehot_df(query_df, i_name='user_name', i_seq='aa_sequence', i_cat='sub_type', i_aa='substrate', path='cladogram-output'):
+
+def aaseq_df_to_musclealignment_file(query_df, i_name='user_name', i_seq='aa_sequence', i_cat='sub_type', i_aa='substrate', path='cladogram-output'):
     print("Column for seq name: {}\nColumn for seq: {}".format(i_name, i_seq))
     print("Number of input entries: {}".format(len(query_df)))
     query_df = check_aaseq_nan(query_df, i_name, i_seq)
@@ -62,7 +66,7 @@ def aaseq_df_to_align_onehot_df(query_df, i_name='user_name', i_seq='aa_sequence
 
 def readfile_apply_clad(path):
     query_df = pd.read_excel(path)
-    aaseq_df_to_align_onehot_df(query_df)
+    aaseq_df_to_musclealignment_file(query_df)
 
 
 readfile_apply_clad('raw-data/prunded_mibig_hydroxylase_db_lit.xls')
